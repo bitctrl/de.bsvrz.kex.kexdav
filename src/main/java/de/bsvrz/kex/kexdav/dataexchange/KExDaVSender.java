@@ -26,9 +26,6 @@
 
 package de.bsvrz.kex.kexdav.dataexchange;
 
-import de.bsvrz.dav.daf.main.DataState;
-import de.bsvrz.kex.kexdav.systemobjects.KExDaVAttributeGroupData;
-
 /**
  * Receiver-Interface für KExDaV-Objekte
  *

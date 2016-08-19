@@ -27,6 +27,8 @@
 package de.bsvrz.kex.kexdav.main;
 
 import de.bsvrz.dav.daf.main.*;
+import de.bsvrz.dav.daf.main.authentication.AuthenticationFile;
+import de.bsvrz.dav.daf.main.authentication.ClientCredentials;
 import de.bsvrz.kex.kexdav.correspondingObjects.MissingAreaException;
 import de.bsvrz.kex.kexdav.dataplugin.AttributeGroupPair;
 import de.bsvrz.kex.kexdav.dataplugin.KExDaVDataPlugin;
@@ -36,12 +38,8 @@ import de.bsvrz.kex.kexdav.parameterloader.ConnectionParameter;
 import de.bsvrz.kex.kexdav.parameterloader.RemoteDaVParameter;
 import de.bsvrz.kex.kexdav.util.AdjustableTimer;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * Verbindung zu einem Remote-Datenverteiler
@@ -114,23 +112,21 @@ public class RemoteDaVConnection {
 			parameters.setApplicationName(Constants.RemoteApplicationName);
 			parameters.setDavCommunicationAddress(_connectionParameters.getIP());
 			parameters.setDavCommunicationSubAddress(_connectionParameters.getPort());
-			parameters.setUserName(_connectionParameters.getUser());
-			parameters.setUserPassword(getUserPassword(_connectionParameters.getDavPid(), _connectionParameters.getUser(), _authenticationFile));
+			String user = _connectionParameters.getUser();
+			ClientCredentials clientCredentials = getClientCredentials(_connectionParameters.getDavPid(), _connectionParameters.getUser(), _authenticationFile);
 			parameters.setConfigurationPath(_localConnection.getClientDavParameters().getConfigurationPath());
 			remoteConnection = new ClientDavConnection(parameters);
 			remoteConnection.setCloseHandler(
-					new ApplicationCloseActionHandler() {
-						public void close(final String error) {
-							_manager.addMessage(Message.newMajor("Verbindung zu " + _connectionParameters.getDavPid() + " wurde terminiert: " + error));
-							stop();
-							startReconnectTimer();
-						}
+					error -> {
+						_manager.addMessage(Message.newMajor("Verbindung zu " + _connectionParameters.getDavPid() + " wurde terminiert: " + error));
+						stop();
+						startReconnectTimer();
 					}
 			);
 			remoteConnection.enableExplicitApplicationReadyMessage();
 			remoteConnection.connect();
 			_manager.addMessage(Message.newInfo("Verbindung mit " + _connectionParameters.getDavPid() + " hergestellt. Starte Authentifizierung."));
-			remoteConnection.login();
+			remoteConnection.login(user, clientCredentials);
 			if(!remoteConnection.getLocalDav().getPid().equals(_connectionParameters.getDavPid())) {
 				throw new IllegalArgumentException(
 						"Der Datenverteiler sollte die Pid '" + _connectionParameters.getDavPid() + "' haben, die Pid war aber '"
@@ -177,39 +173,22 @@ public class RemoteDaVConnection {
 	}
 
 	/**
-	 * Gibt das Passwort für die Dav-authentifizierung zurück
+	 * Gibt das Passwort für die Dav-Authentifizierung zurück
 	 * @param davPid Datenverteiler-Pid
 	 * @param user Benutzer
 	 * @param authFile passwd-datei
 	 * @return Passwort
 	 * @throws MissingParameterException Falls die passwd kein solches Passwort enthält
 	 */
-	private static String getUserPassword(final String davPid, final String user, final File authFile) throws MissingParameterException {
-		try {
-			final String userPassword;
-			final BufferedInputStream inStream = new BufferedInputStream(new FileInputStream(authFile));
-			try {
-				final Properties properties = new Properties();
-				properties.load(inStream);
-				final String key = user + "@" + davPid;
-				userPassword = properties.getProperty(key);
-				if((userPassword == null) || (userPassword.length() == 0)) {
-					throw new MissingParameterException(
-							"Das Passwort für den Benutzer " + key + " ist in der Authentifizierungsdatei " + authFile.getAbsolutePath() + " nicht vorhanden"
-					);
-				}
-			}
-			catch(IOException ex) {
-				throw new MissingParameterException("Spezifizierte Authentifizierungsdatei kann nicht gelesen werden", ex);
-			}
-			finally {
-				inStream.close();
-			}
-			return userPassword;
+	private static ClientCredentials getClientCredentials(final String davPid, final String user, final File authFile) throws MissingParameterException {
+		AuthenticationFile authenticationFile = new AuthenticationFile(authFile.toPath());
+		ClientCredentials clientCredentials = authenticationFile.getClientCredentials(user, davPid);
+		if((clientCredentials == null)) {
+			throw new MissingParameterException(
+					"Das Passwort für den Benutzer " + user + "@" + davPid + " ist in der Authentifizierungsdatei " + authFile.getAbsolutePath() + " nicht vorhanden"
+			);
 		}
-		catch(IOException ex) {
-			throw new MissingParameterException("Spezifizierte Authentifizierungsdatei kann nicht gelesen werden", ex);
-		}
+		return clientCredentials;
 	}
 
 	/** Beendet die Verbindung und stoppt die automatische Verbindungsaufnahme bis zu einem erneuten Aufruf von {@link #start()} */
