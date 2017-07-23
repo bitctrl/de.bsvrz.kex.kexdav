@@ -107,7 +107,7 @@ public class KExDaV {
 		_manager.addObserver(new MessageSenderObserver());
 	}
 
-	/** Erstellt einen Exceptionhandler, der bei einem unbehandelten Fehler KExDaV beendet und eien Betriebsmeldung verschickt. */
+	/** Erstellt einen Exceptionhandler, der bei einem unbehandelten Fehler KExDaV beendet und eine Betriebsmeldung verschickt. */
 	private void createExceptionHandler() {
 		final Thread.UncaughtExceptionHandler oldExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
 		Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(oldExceptionHandler));

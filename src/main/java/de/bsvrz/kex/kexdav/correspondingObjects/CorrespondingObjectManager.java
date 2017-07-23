@@ -27,13 +27,7 @@
 package de.bsvrz.kex.kexdav.correspondingObjects;
 
 import de.bsvrz.dav.daf.main.ClientDavInterface;
-import de.bsvrz.dav.daf.main.config.ConfigurationArea;
-import de.bsvrz.dav.daf.main.config.ConfigurationChangeException;
-import de.bsvrz.dav.daf.main.config.DynamicObject;
-import de.bsvrz.dav.daf.main.config.DynamicObjectType;
-import de.bsvrz.dav.daf.main.config.ObjectTimeSpecification;
-import de.bsvrz.dav.daf.main.config.SystemObject;
-import de.bsvrz.dav.daf.main.config.SystemObjectType;
+import de.bsvrz.dav.daf.main.config.*;
 import de.bsvrz.dav.daf.util.HashBagMap;
 import de.bsvrz.kex.kexdav.dataplugin.AttributeGroupPair;
 import de.bsvrz.kex.kexdav.dataplugin.BasicKExDaVDataPlugin;
@@ -46,11 +40,7 @@ import de.bsvrz.kex.kexdav.systemobjects.KExDaVObject;
 import de.bsvrz.kex.kexdav.systemobjects.MissingKExDaVAttributeGroupException;
 import de.bsvrz.kex.kexdav.systemobjects.ObjectSpecification;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Verwaltung korrespondierender Objekte, der Konfigurationsbereiche um diese abzuspeichern, und der Plug-Ins um die Attributgruppen zu konvertieren
@@ -221,12 +211,12 @@ public class CorrespondingObjectManager implements ObjectManagerInterface {
 	}
 
 	public KExDaVDataPlugin getPlugIn(final String atgSource, final String atgTarget) throws MissingPluginException {
-		if(atgSource.equals(atgTarget)) {
-			return new BasicKExDaVDataPlugin();
-		}
 		final AttributeGroupPair attributeGroupPair = new AttributeGroupPair(atgSource, atgTarget);
 		final KExDaVDataPlugin plugin = _plugins.get(attributeGroupPair);
 		if(plugin != null) return plugin;
+		if(atgSource.equals(atgTarget)) {
+			return new BasicKExDaVDataPlugin();
+		}
 		throw new MissingPluginException("Kann kein Plugin für die " + attributeGroupPair.toString() + " finden.");
 	}
 

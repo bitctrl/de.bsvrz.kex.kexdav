@@ -107,9 +107,11 @@ public class AdjustableTimer {
 	/**
 	 * Führt den angegebenen Task aus
 	 */
-	private synchronized void runTask() {
-		if(_finished) return;
-		_finished = true;
+	private void runTask() {
+		synchronized(this) {
+			if(_finished) return;
+			_finished = true;
+		}
 		_task.run();
 	}
 
